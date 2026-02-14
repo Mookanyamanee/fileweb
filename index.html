@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workshop #6: Solution Guideline. </title>
+    <style>
+        body {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: auto;
+            border: solid 1px #000;
+            padding: 10px;
+        }
+
+        input,
+        button {
+            margin: 10px;
+            padding: 5px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            font-size: 0.8rem;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        a {
+            text-decoration: none;
+            color: darkred;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h5> Guideline: Demo-Upload & Download Files</h5>
+        <input type="file" id="fileInput">
+        <button onclick="uploadFile()">Upload</button>
+        <p id="uploadStatus"></p>
+        <h3> Files on Server</h3>
+        <ul id="fileList"></ul>
+    </div>
+    <script>
+        const serverUrl = 'http://localhost:5000';
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput').files[0];
+            if (!fileInput) return alert('Please select a file');
+            const formData = new FormData();
+            formData.append('file', fileInput);
+            fetch(`${serverUrl}/upload`, { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('uploadStatus').textContent = data.message;
+                    loadFileList(); // โหลดรายการไฟลใหม 
+                })
+                .catch(error => console.error('Upload error:', error));
+        }
+        function loadFileList() {
+            fetch(`${serverUrl}/files`)
+                .then(response => response.json())
+                .then(files => {
+                    const fileList = document.getElementById('fileList');
+                    fileList.innerHTML = '';
+                    files.forEach(file => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a href="${serverUrl}/download/${file}" download>${file}</a>`;
+                        fileList.appendChild(li);
+                    });
+                })
+                .catch(error => console.error('Error loading file list:', error));
+        }
+        loadFileList(); 
+    </script>
+</body>
+
+</html>
