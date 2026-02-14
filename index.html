@@ -1,86 +1,251 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workshop #6: Solution Guideline. </title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Group Work: File System</title>
     <style>
-        body {
-            text-align: center;
-            padding: 10px;
-        }
-
-        .container {
-            max-width: 500px;
-            margin: auto;
-            border: solid 1px #000;
-            padding: 10px;
-        }
-
-        input,
-        button {
-            margin: 10px;
-            padding: 5px;
-        }
-
-        ul {
-            list-style: none;
-            padding: 0;
-            font-size: 0.8rem;
-        }
-
-        li {
-            margin: 10px 0;
-        }
-
-        a {
-            text-decoration: none;
-            color: darkred;
-        }
+      body {
+        text-align: center;
+        padding: 20px;
+        font-family: sans-serif;
+        background-color: #f4f4f9;
+      }
+      .container {
+        max-width: 400px;
+        margin: auto;
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+      input,
+      button {
+        margin: 10px 0;
+        padding: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .secondary-btn {
+        background-color: red;
+      }
+      .secondary-btn:hover {
+        background-color: rgb(131, 0, 0);
+      }
+      .link-text {
+        color: #007bff;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-top: 10px;
+        display: inline-block;
+      }
+      .hidden {
+        display: none;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        background: #fff;
+        border-bottom: 1px solid #eee;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      li a {
+        color: #007bff;
+        text-decoration: none;
+      }
     </style>
-</head>
-
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h5> Guideline: Demo-Upload & Download Files</h5>
-        <input type="file" id="fileInput">
-        <button onclick="uploadFile()">Upload</button>
-        <p id="uploadStatus"></p>
-        <h3> Files on Server</h3>
-        <ul id="fileList"></ul>
-    </div>
-    <script>
-        const serverUrl = 'http://localhost:5000';
-        function uploadFile() {
-            const fileInput = document.getElementById('fileInput').files[0];
-            if (!fileInput) return alert('Please select a file');
-            const formData = new FormData();
-            formData.append('file', fileInput);
-            fetch(`${serverUrl}/upload`, { method: 'POST', body: formData })
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('uploadStatus').textContent = data.message;
-                    loadFileList(); // โหลดรายการไฟลใหม 
-                })
-                .catch(error => console.error('Upload error:', error));
-        }
-        function loadFileList() {
-            fetch(`${serverUrl}/files`)
-                .then(response => response.json())
-                .then(files => {
-                    const fileList = document.getElementById('fileList');
-                    fileList.innerHTML = '';
-                    files.forEach(file => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `<a href="${serverUrl}/download/${file}" download>${file}</a>`;
-                        fileList.appendChild(li);
-                    });
-                })
-                .catch(error => console.error('Error loading file list:', error));
-        }
-        loadFileList(); 
-    </script>
-</body>
+      <div id="loginSection">
+        <h2>Login</h2>
+        <input type="text" id="loginUser" placeholder="Username" />
+        <input type="password" id="loginPass" placeholder="Password" />
+        <button onclick="login()">Login</button>
+        <span class="link-text" onclick="showRegister()">Register</span>
+      </div>
 
+      <div id="registerSection" class="hidden">
+        <h2>Register</h2>
+        <input type="text" id="regUser" placeholder="Username" />
+        <input type="password" id="regPass" placeholder="Password" />
+        <button onclick="register()" style="background-color: #28a745">
+          Register
+        </button>
+        <span class="link-text" onclick="showLogin()">Back to login</span>
+      </div>
+
+      <div id="appSection" class="hidden">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h4 id="welcomeMsg" style="margin: 0">Welcome</h4>
+          <button
+            onclick="logout()"
+            class="secondary-btn"
+            style="width: auto; padding: 5px 15px; margin: 0"
+          >
+            Logout
+          </button>
+        </div>
+        <hr />
+
+        <h5>อัปโหลดไฟล์ (Upload)</h5>
+        <input type="file" id="fileInput" />
+        <button onclick="uploadFile()">Upload File</button>
+        <p id="uploadStatus" style="color: green; font-size: 0.9rem"></p>
+
+        <h3 style="text-align: left; margin-top: 30px">รายการไฟล์ของคุณ</h3>
+        <ul id="fileList"></ul>
+      </div>
+    </div>
+
+    <script>
+      const serverUrl = "http://localhost:5000";
+
+      // --- 1. เปลี่ยนตัวแปรธรรมดา ให้ไปดึงจาก localStorage แทน ---
+      let currentUser = localStorage.getItem("username");
+      let currentRole = localStorage.getItem("role");
+
+      // --- 2. ฟังก์ชันเช็คตอนเปิดหน้าเว็บว่าเคย Login ค้างไว้มั้ย ---
+      // (เอามาวางไว้นอกฟังก์ชัน เพื่อให้ทำงานทันทีที่เปิดเว็บ)
+      if (currentUser && currentRole) {
+        showApp(); // ถ้ามีข้อมูลค้างอยู่ ให้ข้ามไปหน้า App เลย
+      }
+
+      function showApp() {
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("registerSection").classList.add("hidden");
+        document.getElementById("appSection").classList.remove("hidden");
+        document.getElementById("welcomeMsg").innerHTML =
+          `User: ${currentUser} <span class="role-badge">${currentRole}</span>`;
+        loadFileList();
+      }
+
+      // --- ฟังก์ชันสลับหน้า (เหมือนเดิม) ---
+      function showRegister() {
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("registerSection").classList.remove("hidden");
+      }
+      function showLogin() {
+        document.getElementById("registerSection").classList.add("hidden");
+        document.getElementById("loginSection").classList.remove("hidden");
+      }
+
+      // --- Register (เหมือนเดิม) ---
+      function register() {
+        const user = document.getElementById("regUser").value;
+        const pass = document.getElementById("regPass").value;
+        if (!user || !pass) return alert("Please fill in all fields.");
+
+        fetch(`${serverUrl}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: user, password: pass }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              alert("Registration successful! Please log in.");
+              showLogin();
+              document.getElementById("regUser").value = "";
+              document.getElementById("regPass").value = "";
+            } else {
+              alert(data.message);
+            }
+          });
+      }
+
+      // --- 3. Login (แก้ไขให้บันทึกใส่ localStorage) ---
+      function login() {
+        const user = document.getElementById("loginUser").value;
+        const pass = document.getElementById("loginPass").value;
+
+        fetch(`${serverUrl}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: user, password: pass }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              // จำค่าลงเครื่อง!
+              localStorage.setItem("username", data.username);
+              localStorage.setItem("role", data.role);
+
+              // อัปเดตตัวแปร
+              currentUser = data.username;
+              currentRole = data.role;
+
+              showApp();
+            } else {
+              alert(data.message);
+            }
+          });
+      }
+
+      // --- Upload (เหมือนเดิม) ---
+      function uploadFile() {
+        const fileInput = document.getElementById("fileInput").files[0];
+        if (!fileInput) return alert("Please select a file");
+
+        const formData = new FormData();
+        formData.append("file", fileInput);
+        formData.append("owner", currentUser);
+
+        fetch(`${serverUrl}/upload`, { method: "POST", body: formData })
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("uploadStatus").innerText =
+              "✅ " + data.message;
+            document.getElementById("fileInput").value = "";
+            loadFileList();
+          });
+      }
+
+      // --- Load Files (เหมือนเดิม) ---
+      function loadFileList() {
+        fetch(`${serverUrl}/files?role=${currentRole}&username=${currentUser}`)
+          .then((res) => res.json())
+          .then((files) => {
+            const list = document.getElementById("fileList");
+            list.innerHTML = "";
+            if (files.length === 0)
+              list.innerHTML = '<p style="color:#aaa">No files found.</p>';
+
+            files.forEach((f) => {
+              list.innerHTML += `<li>${f} <a href="${serverUrl}/download/${f}" download>Download</a></li>`;
+            });
+          });
+      }
+
+      // --- 4. Logout (แก้ไขให้ล้างความจำ) ---
+      function logout() {
+        localStorage.clear(); // ล้างข้อมูลที่จำไว้
+        location.reload(); // รีเฟรชกลับไปหน้าแรก
+      }
+    </script>
+  </body>
 </html>
